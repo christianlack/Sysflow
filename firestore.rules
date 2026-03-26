@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: clients
+    // Fields: nom (string), npa (string), ville (string), email (string), telephone (string)
+    //
+    // Collection: resources
+    // Fields: name (string), secteur (string), actif (bool), mode24h (bool), type (string)
+    //
+    // Collection: orders
+    // Fields: lotNumber (string), numeroCommandeERP (string), clientId (string), article (string), 
+    //         nombrePieces (number), delaiSouhaite (string), isImperative (bool), statut (string), 
+    //         secteur (string), posageRequis (bool), posageDelai (string), posageStatut (string),
+    //         createurId (string), validateurId (string), createdAt (string)
+    //
+    // Collection: tasks
+    // Fields: ofId (string), resourceId (string), startDate (string), endDate (string), progress (number)
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "christianlack@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // Rules for each collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /clients/{clientId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && 
+        request.resource.data.nom is string && request.resource.data.nom.size() > 0 &&
+        request.resource.data.npa is string &&
+        request.resource.data.ville is string;
+      allow delete: if isAdmin();
+    }
+
+    match /resources/{resourceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && hasRequiredFields(['lotNumber', 'clientId', 'article', 'nombrePieces', 'statut']);
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "FabrikFlow",
+  "description": "Système de gestion de production (MES) avec planification Gantt temps réel, gestion de charge machine et workflow de validation.",
+  "requestFramePermissions": []
+}

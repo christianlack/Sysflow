@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "Client": {
+      "title": "Client",
+      "description": "Un client de l'entreprise",
+      "type": "object",
+      "properties": {
+        "nom": { "type": "string" },
+        "npa": { "type": "string" },
+        "ville": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "telephone": { "type": "string" }
+      },
+      "required": ["nom", "npa", "ville"]
+    },
+    "OrderArticle": {
+      "title": "Article de commande",
+      "description": "Un article spécifique dans un lot",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nom": { "type": "string" },
+        "quantite": { "type": "integer" }
+      },
+      "required": ["nom", "quantite"]
+    },
+    "Attachment": {
+      "title": "Pièce jointe",
+      "description": "Un fichier attaché à un lot",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nom": { "type": "string" },
+        "url": { "type": "string" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nom", "url", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Un lot de production (LOT)",
+      "type": "object",
+      "properties": {
+        "lotNumber": { "type": "string" },
+        "numeroCommandeERP": { "type": "string" },
+        "clientId": { "type": "string" },
+        "articles": {
+          "type": "array",
+          "items": { "$ref": "OrderArticle" }
+        },
+        "delaiSouhaite": { "type": "string", "format": "date-time" },
+        "isImperative": { "type": "boolean" },
+        "statut": { "type": "string", "enum": ["en_attente", "valide", "en_cours", "termine"] },
+        "secteur": { "type": "string" },
+        "posageRequis": { "type": "boolean" },
+        "posageDelai": { "type": "string", "format": "date-time" },
+        "posageStatut": { "type": "string", "enum": ["en_attente", "valide"] },
+        "createurId": { "type": "string" },
+        "validateurId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "piecesJointes": {
+          "type": "array",
+          "items": { "$ref": "Attachment" }
+        },
+        "prestatairesExternes": {
+          "type": "array",
+          "items": { "$ref": "ExternalProvider" }
+        }
+      },
+      "required": ["lotNumber", "clientId", "articles", "delaiSouhaite", "statut"]
+    },
+    "ExternalProvider": {
+      "title": "Prestataire Externe",
+      "description": "Un prestataire de service externe",
+      "type": "object",
+      "properties": {
+        "nom": { "type": "string" },
+        "delai": { "type": "string", "format": "date-time" },
+        "envoiPrevu": { "type": "string", "format": "date-time" },
+        "livraisonPrevue": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nom", "delai"]
+    },
+    "Resource": {
+      "title": "Resource",
+      "description": "Une machine ou un opérateur",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "secteur": { "type": "string", "enum": ["ablation", "decolletage", "decoupe", "soudage"] },
+        "actif": { "type": "boolean" },
+        "mode24h": { "type": "boolean" },
+        "type": { "type": "string", "enum": ["machine", "operator"] }
+      },
+      "required": ["name", "secteur", "actif", "type"]
+    },
+    "Task": {
+      "title": "Tâche de production",
+      "description": "Bloc de temps planifié sur une machine pour un OF",
+      "type": "object",
+      "properties": {
+        "ofId": { "type": "string" },
+        "resourceId": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" },
+        "progress": { "type": "number" }
+      },
+      "required": ["ofId", "resourceId", "startDate", "endDate"]
+    }
+  },
+  "firestore": {
+    "clients": { "schema": "Client", "description": "Liste des clients" },
+    "orders": { "schema": "Order", "description": "Liste des lots de production" },
+    "resources": { "schema": "Resource", "description": "Liste des machines et opérateurs" },
+    "tasks": { "schema": "Task", "description": "Blocs de planification Gantt" }
+  }
+}

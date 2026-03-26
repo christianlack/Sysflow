@@ -105,7 +105,7 @@ export default function App() {
   const navItems = [
     { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['admin', 'logistique', 'production'] },
     { id: 'resources', label: 'Machines / Ressources', icon: Factory, roles: ['admin', 'production'] },
-    { id: 'orders', label: 'Lots de Production', icon: ClipboardList, roles: ['admin', 'logistique', 'production'] },
+    { id: 'orders', label: 'Lots de Production', icon: ClipboardList, roles: ['admin', 'logistique', 'production', 'poseur'] },
     { id: 'clients', label: 'Clients', icon: UserIcon, roles: ['admin', 'logistique'] },
     { id: 'gantt', label: 'Planification Gantt', icon: GanttChartSquare, roles: ['admin', 'logistique', 'production', 'poseur'] },
     { id: 'analytics', label: 'Suivi de Charge', icon: BarChart3, roles: ['admin', 'production'] },

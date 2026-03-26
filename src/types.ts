@@ -67,9 +67,11 @@ export interface Order {
   // Notifications
   notificationProduction?: string | null;
   notificationLogistique?: string | null;
+  notificationPose?: string | null;
   
   clientConfirme: boolean;
   createdAt: string;
+  mandatPose?: string;
 }
 
 export interface Task {

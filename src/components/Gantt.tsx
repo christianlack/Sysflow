@@ -227,10 +227,29 @@ export const Gantt = () => {
                     {format(day, 'EEE', { locale: fr })}
                   </div>
                   <div className={cn(
-                    "text-sm font-bold w-8 h-8 flex items-center justify-center mx-auto rounded-full",
+                    "text-sm font-bold w-8 h-8 flex items-center justify-center mx-auto rounded-full mb-2",
                     isToday(day) ? "bg-[#FF4E00] text-white" : "text-[#141414]"
                   )}>
                     {format(day, 'dd')}
+                  </div>
+                  {/* Daily Load Summary */}
+                  <div className="flex flex-col gap-1">
+                    {resources.slice(0, 3).map(r => {
+                      const load = getDailyLoad(r.id!, day);
+                      const cap = r.mode24h ? 24 * 60 : 8 * 60;
+                      const pct = Math.min(100, (load / cap) * 100);
+                      return (
+                        <div key={r.id} className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className={cn(
+                              "h-full transition-all",
+                              pct > 90 ? "bg-red-500" : pct > 50 ? "bg-orange-500" : "bg-blue-500"
+                            )}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -253,6 +272,7 @@ export const Gantt = () => {
                   {days.map((day, i) => {
                     const loadMinutes = getDailyLoad(resource.id!, day);
                     const capacityMinutes = resource.mode24h ? 24 * 60 : 8 * 60;
+                    const freeMinutes = Math.max(0, capacityMinutes - loadMinutes);
                     const loadPercent = Math.min(100, (loadMinutes / capacityMinutes) * 100);
                     
                     return (
@@ -266,10 +286,11 @@ export const Gantt = () => {
                             style={{ height: `${loadPercent}%` }}
                           />
                         )}
-                        <div className="absolute top-1 right-1 opacity-0 group-hover/cell:opacity-100 transition-opacity pointer-events-none">
-                          <span className="text-[8px] font-bold text-[#8E9299]">
-                            {Math.round(loadMinutes / 60)}h / {capacityMinutes / 60}h
-                          </span>
+                        <div className="absolute top-1 right-1 opacity-0 group-hover/cell:opacity-100 transition-opacity pointer-events-none z-10">
+                          <div className="bg-[#151619] text-white p-2 rounded-lg shadow-xl text-[8px] whitespace-nowrap">
+                            <div className="font-bold mb-1">Charge: {Math.round(loadMinutes / 60)}h / {capacityMinutes / 60}h</div>
+                            <div className="text-green-400">Libre: {Math.round(freeMinutes / 60)}h {freeMinutes % 60}m</div>
+                          </div>
                         </div>
                       </div>
                     );

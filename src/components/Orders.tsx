@@ -46,6 +46,7 @@ export const Orders = () => {
     statut: 'en_attente',
     secteur: 'ablation',
     posageRequis: false,
+    mandatPose: '',
     clientConfirme: false,
     prestatairesExternes: [],
     piecesJointes: []
@@ -136,6 +137,7 @@ export const Orders = () => {
         statut: 'en_attente',
         secteur: 'ablation',
         posageRequis: false,
+        mandatPose: '',
         clientConfirme: false,
         prestatairesExternes: [],
         piecesJointes: []
@@ -161,16 +163,19 @@ export const Orders = () => {
 
       const deadlineChanged = prodValidation.proposedDeadline && prodValidation.proposedDeadline !== order.delaiSouhaite;
 
-      await updateDoc(doc(db, 'orders', order.id!), {
-        delaiSouhaite: prodValidation.proposedDeadline || order.delaiSouhaite,
+      const updates: any = {
         statut: deadlineChanged ? 'a_confirmer' : 'valide',
+        delaiSouhaite: prodValidation.proposedDeadline || order.delaiSouhaite,
         posageRequis: prodValidation.needsPose,
         posageDelai: prodValidation.poseDeadline,
-        posageStatut: prodValidation.needsPose ? 'en_attente' : undefined,
+        posageStatut: prodValidation.needsPose ? 'en_attente' : null,
         validateurId: auth.currentUser?.uid,
         resourceId: prodValidation.resourceId,
-        notificationLogistique: deadlineChanged ? `Nouveau délai proposé par la production pour LOT-${order.lotNumber}` : null
-      });
+        notificationLogistique: deadlineChanged ? `Nouveau délai proposé par la production pour LOT-${order.lotNumber}` : null,
+        notificationPose: prodValidation.needsPose ? `Nouveau mandat de pose pour LOT-${order.lotNumber}` : null
+      };
+
+      await updateDoc(doc(db, 'orders', order.id!), updates);
       
       // Create planning task
       if (prodValidation.resourceId) {
@@ -210,7 +215,8 @@ export const Orders = () => {
     try {
       await updateDoc(doc(db, 'orders', order.id!), {
         posageStatut: 'valide',
-        notificationProduction: `La pose a validé le délai pour le LOT-${order.lotNumber}`
+        notificationProduction: `La pose a validé le délai pour le LOT-${order.lotNumber}`,
+        notificationPose: null
       });
       setSelectedOrderId(null);
     } catch (error) {
@@ -304,6 +310,29 @@ export const Orders = () => {
         </div>
       )}
 
+      {/* Notifications for Pose */}
+      {role === 'poseur' && orders.some(o => o.notificationPose) && (
+        <div className="space-y-2">
+          {orders.filter(o => o.notificationPose).map(order => (
+            <div key={order.id} className="bg-purple-50 border border-purple-200 p-4 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-center gap-3">
+                <Bell className="w-5 h-5 text-purple-600" />
+                <span className="text-sm font-medium text-purple-800">{order.notificationPose}</span>
+              </div>
+              <button 
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await updateDoc(doc(db, 'orders', order.id!), { notificationPose: null });
+                }}
+                className="text-purple-600 hover:text-purple-800 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl border border-[#E4E3E0] shadow-sm overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-[#F8F9FA] text-[#8E9299] text-xs uppercase font-bold">
@@ -317,7 +346,12 @@ export const Orders = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E4E3E0]">
-            {orders.map((order) => (
+            {orders
+              .filter(order => {
+                if (role === 'poseur') return order.posageRequis;
+                return true;
+              })
+              .map((order) => (
               <tr 
                 key={order.id} 
                 className="hover:bg-[#F8F9FA] transition-colors group cursor-pointer"
@@ -624,6 +658,29 @@ export const Orders = () => {
                 />
                 <label htmlFor="imperative" className="text-sm font-bold text-[#141414]">Délai client impératif (bloqué)</label>
               </div>
+
+              <div className="col-span-2 flex items-center gap-3 p-4 bg-[#F8F9FA] rounded-xl">
+                <input 
+                  type="checkbox" 
+                  id="posage"
+                  checked={newOrder.posageRequis}
+                  onChange={(e) => setNewOrder({ ...newOrder, posageRequis: e.target.checked })}
+                  className="w-5 h-5 accent-[#FF4E00]"
+                />
+                <label htmlFor="posage" className="text-sm font-bold text-[#141414]">Posage requis (Atelier)</label>
+              </div>
+
+              {newOrder.posageRequis && (
+                <div className="col-span-2 space-y-2">
+                  <label className="text-xs font-bold text-[#8E9299] uppercase tracking-wider">Mandat de Pose / Instructions</label>
+                  <textarea 
+                    value={newOrder.mandatPose}
+                    onChange={(e) => setNewOrder({ ...newOrder, mandatPose: e.target.value })}
+                    placeholder="Instructions détaillées pour l'atelier de pose..."
+                    className="w-full px-4 py-3 bg-[#F8F9FA] border-none rounded-xl focus:ring-2 focus:ring-[#FF4E00] transition-all min-h-[100px]"
+                  />
+                </div>
+              )}
             </div>
             <div className="p-8 bg-[#F8F9FA] flex gap-4">
               <button 
@@ -700,6 +757,19 @@ export const Orders = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Mandat de Pose Section */}
+              {selectedOrder.posageRequis && (
+                <div className="p-6 bg-orange-50 rounded-2xl border border-orange-100 space-y-3">
+                  <div className="flex items-center gap-2 text-orange-700">
+                    <ClipboardList className="w-5 h-5" />
+                    <h4 className="text-sm font-bold uppercase tracking-wider">Mandat de Pose</h4>
+                  </div>
+                  <div className="text-sm text-orange-900 bg-white/50 p-4 rounded-xl border border-orange-200/50 whitespace-pre-wrap">
+                    {selectedOrder.mandatPose || "Aucune instruction spécifique fournie."}
+                  </div>
+                </div>
+              )}
 
               {/* External Providers Section */}
               {selectedOrder.prestatairesExternes && selectedOrder.prestatairesExternes.length > 0 && (
